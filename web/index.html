@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mcp-data-agent — recorded demo run</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0f1420; color: #e6edf7; }
+  main { max-width: 880px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+  h1 { font-size: 1.8rem; margin: 0 0 .4rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .6rem; color: #8fd0ff; }
+  p, li { line-height: 1.55; color: #c3cedd; }
+  code { font-family: ui-monospace, Menlo, monospace; background: #1b2436; padding: .1em .35em; border-radius: 4px; }
+  pre { background: #131a2a; border: 1px solid #263453; border-radius: 10px; padding: 1rem; overflow-x: auto;
+        font-family: ui-monospace, Menlo, monospace; font-size: .82rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .answer { background: #123324; border: 1px solid #1f6b45; border-radius: 10px; padding: 1rem 1.2rem; font-size: 1.05rem; color: #d9ffe9; }
+  .pill { display: inline-block; border: 1px solid #35507e; border-radius: 999px; padding: .15rem .7rem; margin: .2rem .3rem .2rem 0; font-size: .85rem; color: #a9c8f5; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #263453; padding: .5rem .7rem; text-align: left; }
+  th { background: #182238; }
+  footer { margin-top: 3rem; color: #71809a; font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>mcp-data-agent</h1>
+  <p>A Model Context Protocol server for safe, read-only data exploration, plus an
+     agent client that answers questions by discovering and calling its tools over stdio.
+     This page is a static recording of a real run — no server, no scripts, no external assets.</p>
+
+  <p>
+    <span class="pill">list_tables</span>
+    <span class="pill">describe_table</span>
+    <span class="pill">run_query (SELECT only)</span>
+    <span class="pill">SQLite, read-only</span>
+    <span class="pill">offline demo</span>
+  </p>
+
+  <h2>The recorded run</h2>
+  <p>Command: <code>python -m mcp_data_agent.demo "which plan has the most subscribers?"</code></p>
+  <pre>Question: which plan has the most subscribers?
+Tools discovered: list_tables, describe_table, run_query
+Tool calls:
+  1. list_tables()
+     -&gt; {"tables": [{"name": "customers", "row_count": 1200}, {"name": "invoices", "row_count": 4200}, {"name": "plans", "row_count": 6}, {"name": "subscriptions", "row_count": 1800}]}
+  2. describe_table({"table": "plans"})
+     -&gt; columns: id INTEGER (pk), name TEXT, monthly_price_usd REAL, data_gb INTEGER
+  3. describe_table({"table": "subscriptions"})
+     -&gt; columns: id INTEGER (pk), customer_id INTEGER, plan_id INTEGER, status TEXT, started_at TEXT, ended_at TEXT
+  4. run_query({"sql": "SELECT p.name AS plan, COUNT(*) AS subscribers FROM subscriptions s JOIN plans p ON p.id = s.plan_id GROUP BY p.name ORDER BY subscribers DESC LIMIT 5"})
+     -&gt; rows: Pro 515, Unlimited 449, Plus 281, Starter 248, Enterprise 176</pre>
+
+  <div class="answer"><strong>Final answer:</strong> The plan with the most subscribers is Pro with 515 subscriptions.</div>
+
+  <h2>Why the query could not have hurt anything</h2>
+  <table>
+    <tr><th>Layer</th><th>What it does</th></tr>
+    <tr><td>Lexical validation</td><td>Single SELECT only; write / DDL keywords, SQL comments and multi-statements rejected</td></tr>
+    <tr><td>Row limit</td><td>A LIMIT is always applied and capped at 100 rows</td></tr>
+    <tr><td>Read-only connection</td><td>SQLite opened with a <code>mode=ro</code> URI</td></tr>
+    <tr><td>Authorizer + timeout</td><td>Engine-level allowlist for read actions; queries abort after 5 seconds</td></tr>
+  </table>
+
+  <h2>Dataset (synthetic, seed 42)</h2>
+  <table>
+    <tr><th>Table</th><th>Rows</th></tr>
+    <tr><td>customers</td><td>1,200</td></tr>
+    <tr><td>plans</td><td>6</td></tr>
+    <tr><td>subscriptions</td><td>1,800</td></tr>
+    <tr><td>invoices</td><td>4,200</td></tr>
+  </table>
+
+  <footer>MIT licensed. See the project README for the full architecture diagram, safety model and design decisions.</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-data-agent"
+version = "0.1.0"
+description = "A Model Context Protocol server for safe, read-only data exploration, plus an agent client that answers questions over stdio."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Prudhvi Kolla" }]
+dependencies = [
+    "mcp>=1.2,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+mcp-data-agent-server = "mcp_data_agent.server:main"
+mcp-data-agent-demo = "mcp_data_agent.demo:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
